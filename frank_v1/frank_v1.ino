@@ -1,5 +1,6 @@
 #include <Servo.h>
 #include "UltrasonicSen01Handler.h"
+#include "EngineHandler.h"
 
 enum EDrivingMode {
   IDLE,
@@ -11,26 +12,15 @@ enum EDrivingMode {
 
 Servo myservo;
 UltrasonicSensorHandler sonicHandler;
+EngineHandler engineLeft(5, 4);
+EngineHandler engineRight(6, 7);
 const int baseAngle = 94; 
-const int engine1Speed = 5; //Speed motor 1
-const int engine2Speed = 6; //Speed motor 2
-const int engine1Dir = 4; //Direction motor 1
-const int engine2Dir = 7; //Direction motor 2
-
-EDrivingMode drivingMode = IDLE;
 
 void setup() {
   myservo.attach(10);
   myservo.write(baseAngle);
   
   Serial.begin(115200);
-  
-  pinMode(engine1Speed, OUTPUT);
-  pinMode(engine2Speed, OUTPUT);
-  pinMode(engine1Dir, OUTPUT);
-  pinMode(engine2Dir, OUTPUT);
-  digitalWrite(engine1Speed, LOW);
-  digitalWrite(engine2Speed, LOW);
 }
 
 void loop() {
@@ -39,19 +29,23 @@ void loop() {
     if (val != -1) {
       switch(val) {
         case 'U':
-          advance(255, 255);
+          engineLeft.advance(200);
+          engineRight.advance(200);
           break;
 
         case 'D':
-          backOff(200, 200);
+          engineLeft.backOff(200);
+          engineRight.backOff(200);
           break;
           
         case 'L':
-          turnLeft();
+          engineLeft.backOff(200);
+          engineRight.advance(200);
           break;
 
         case 'R':
-          turnRight();
+          engineLeft.advance(200);
+          engineRight.backOff(200);
           break;
 
         case 'z':
@@ -59,69 +53,17 @@ void loop() {
           break;
 
         case 'x':
-          stop();
+          engineLeft.stop();
+          engineRight.stop();
           break;
       }
     }
   }
-  if (drivingMode == FORWARD) {
+  if (engineLeft.getDrivingMode() == FORWARD && engineRight.getDrivingMode() == FORWARD) {
     int distance = sonicHandler.readDistance();
-    if (distance > -1 && distance < 50) stop();
+    if (distance > -1 && distance < 50) {
+      engineLeft.stop();
+      engineRight.stop();
+    }
   }
-}
-
-void advance(int speedM1, int speedM2) {
-  if (drivingMode != IDLE && drivingMode != FORWARD) {
-    stop();
-    delay(50);
-  }
-  analogWrite(engine1Speed, speedM1);
-  digitalWrite(engine1Dir, HIGH);
-  analogWrite(engine2Speed, speedM2);
-  digitalWrite(engine2Dir, HIGH);
-  drivingMode = FORWARD;
-}
-
-void backOff(int speedM1, int speedM2) {
-  if (drivingMode != IDLE && drivingMode != BACKWARD) {
-    stop();
-    delay(50);
-  }
-  analogWrite(engine1Speed, speedM1);
-  digitalWrite(engine1Dir, LOW);
-  analogWrite(engine2Speed, speedM2);
-  digitalWrite(engine2Dir, LOW);
-  drivingMode = BACKWARD;
-}
-
-void turnLeft() {
-  if (drivingMode != IDLE && drivingMode != TURNLEFT) {
-    stop();
-    delay(50);
-  }
-  analogWrite(engine1Speed, 200);
-  digitalWrite(engine1Dir, HIGH);
-  analogWrite(engine2Speed, 200);
-  digitalWrite(engine2Dir, LOW);
-  drivingMode = TURNLEFT;
-}
-
-void turnRight() {
-  if (drivingMode != IDLE && drivingMode != TURNRIGHT) {
-    stop();
-    delay(50);
-  }
-  analogWrite(engine1Speed, 200);
-  digitalWrite(engine1Dir, LOW);
-  analogWrite(engine2Speed, 200);
-  digitalWrite(engine2Dir, HIGH);
-  drivingMode = TURNRIGHT;
-}
-
-void stop() {
-  analogWrite(engine1Speed, 0);
-  digitalWrite(engine1Dir, LOW);
-  analogWrite(engine2Speed, 0);
-  digitalWrite(engine2Dir, LOW);
-  drivingMode = IDLE;
 }
