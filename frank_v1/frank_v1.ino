@@ -11,8 +11,8 @@ enum EDrivingMode {
 
 UltrasonicSensorHandler sonicHandler;
 EDrivingMode drivingMode = IDLE;
-EngineHandler engineLeft(5, 4);
-EngineHandler engineRight(6, 7);
+EngineHandler engineRight(5, 4);
+EngineHandler engineLeft(6, 7);
 
 void setup() {
   Serial.begin(115200);

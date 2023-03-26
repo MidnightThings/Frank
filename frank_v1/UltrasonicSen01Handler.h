@@ -43,7 +43,7 @@ class UltrasonicSensorHandler {
 
     bool obstacleFromRelativeDegrees(int dist, int degs) {
       srv.setRelativeAngle(degs);
-      delay(15);
+      delay(50);
       int res = readDistance();
       if (res < dist) return true;
       return false;
