@@ -1,4 +1,4 @@
-#include <Servo.h>
+// #include <Servo.h>
 #include "UltrasonicSen01Handler.h"
 
 enum EDrivingMode {
@@ -9,9 +9,9 @@ enum EDrivingMode {
   TURNRIGHT
 };
 
-Servo myservo;
+// Servo myservo;
 UltrasonicSensorHandler sonicHandler;
-const int baseAngle = 94; 
+// const int baseAngle = 94;
 const int engine1Speed = 5; //Speed motor 1
 const int engine2Speed = 6; //Speed motor 2
 const int engine1Dir = 4; //Direction motor 1
@@ -20,20 +20,24 @@ const int engine2Dir = 7; //Direction motor 2
 EDrivingMode drivingMode = IDLE;
 
 void setup() {
-  myservo.attach(10);
-  myservo.write(baseAngle);
-  
+  // myservo.attach(10);
+  // myservo.write(baseAngle);
+
   Serial.begin(115200);
-  
+
   pinMode(engine1Speed, OUTPUT);
   pinMode(engine2Speed, OUTPUT);
   pinMode(engine1Dir, OUTPUT);
   pinMode(engine2Dir, OUTPUT);
   digitalWrite(engine1Speed, LOW);
   digitalWrite(engine2Speed, LOW);
+
+  sonicHandler.srv.myServo.attach(10);
+  sonicHandler.srv.initialize();
 }
 
 void loop() {
+  // sonicHandler.obstacleAhead(100);
   if(Serial.available()) {
     char val = Serial.read();
     if (val != -1) {
@@ -45,7 +49,7 @@ void loop() {
         case 'D':
           backOff(200, 200);
           break;
-          
+
         case 'L':
           turnLeft();
           break;
@@ -56,6 +60,7 @@ void loop() {
 
         case 'z':
           Serial.println("Hello");
+          Serial.println(sonicHandler.obstacleAhead(100));
           break;
 
         case 'x':
@@ -65,8 +70,9 @@ void loop() {
     }
   }
   if (drivingMode == FORWARD) {
-    int distance = sonicHandler.readDistance();
-    if (distance > -1 && distance < 50) stop();
+    if (sonicHandler.obstacleAhead(50)) stop();
+    // int distance = sonicHandler.readDistance();
+    // if (distance > -1 && distance < 50) stop();
   }
 }
 
