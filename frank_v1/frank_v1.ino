@@ -1,10 +1,10 @@
 #include <Servo.h>
 Servo myservo;
-int baseAngle = 94; 
-int engine1Speed = 5; //Speed motor 1
-int engine2Speed = 6; //Speed motor 2
-int engine1Dir = 4; //Direction motor 1
-int engine2Dir = 7; //Direction motor 2
+const int baseAngle = 94; 
+const int engine1Speed = 5; //Speed motor 1
+const int engine2Speed = 6; //Speed motor 2
+const int engine1Dir = 4; //Direction motor 1
+const int engine2Dir = 7; //Direction motor 2
 
 void setup() {
   myservo.attach(10);
@@ -18,9 +18,9 @@ void setup() {
   pinMode(engine2Dir, OUTPUT);
   digitalWrite(engine1Speed, LOW);
   digitalWrite(engine2Speed, LOW);
-  // advance(255, 255);
+
 }
-//94
+
 void loop() {
   if(Serial.available()) {
     char val = Serial.read();
