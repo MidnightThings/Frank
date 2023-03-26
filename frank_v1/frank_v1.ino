@@ -66,7 +66,7 @@ void loop() {
   }
   if (drivingMode == FORWARD) {
     int distance = sonicHandler.readDistance();
-    if (distance > -1 && distance < 30) stop();
+    if (distance > -1 && distance < 50) stop();
   }
 }
 
