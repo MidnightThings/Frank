@@ -10,6 +10,7 @@ enum EDrivingMode {
 };
 
 Servo myservo;
+UltrasonicSensorHandler sonicHandler;
 const int baseAngle = 94; 
 const int engine1Speed = 5; //Speed motor 1
 const int engine2Speed = 6; //Speed motor 2
@@ -64,7 +65,7 @@ void loop() {
     }
   }
   if (drivingMode == FORWARD) {
-    int distance = readDistance();
+    int distance = sonicHandler.readDistance();
     if (distance > -1 && distance < 30) stop();
   }
 }
