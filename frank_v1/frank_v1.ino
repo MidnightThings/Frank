@@ -1,4 +1,3 @@
-#include <Servo.h>
 #include "UltrasonicSen01Handler.h"
 #include "EngineHandler.h"
 
@@ -10,17 +9,15 @@ enum EDrivingMode {
   TURNRIGHT
 };
 
-Servo myservo;
 UltrasonicSensorHandler sonicHandler;
+EDrivingMode drivingMode = IDLE;
 EngineHandler engineLeft(5, 4);
 EngineHandler engineRight(6, 7);
-const int baseAngle = 94; 
 
 void setup() {
-  myservo.attach(10);
-  myservo.write(baseAngle);
-  
   Serial.begin(115200);
+  sonicHandler.srv.myServo.attach(10);
+  sonicHandler.srv.initialize();
 }
 
 void loop() {
@@ -37,7 +34,7 @@ void loop() {
           engineLeft.backOff(200);
           engineRight.backOff(200);
           break;
-          
+
         case 'L':
           engineLeft.backOff(200);
           engineRight.advance(200);
@@ -60,8 +57,7 @@ void loop() {
     }
   }
   if (engineLeft.getDrivingMode() == FORWARD && engineRight.getDrivingMode() == FORWARD) {
-    int distance = sonicHandler.readDistance();
-    if (distance > -1 && distance < 50) {
+    if (sonicHandler.obstacleAhead(50)) {
       engineLeft.stop();
       engineRight.stop();
     }
