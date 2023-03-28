@@ -26,13 +26,13 @@ void loop() {
     if (val != -1) {
       switch(val) {
         case 'U':
-          engineLeft.advance(200);
-          engineRight.advance(200);
+          engineLeft.advance(255);
+          engineRight.advance(255);
           break;
 
         case 'D':
-          engineLeft.backOff(200);
-          engineRight.backOff(200);
+          engineLeft.backOff(255);
+          engineRight.backOff(255);
           break;
 
         case 'L':
