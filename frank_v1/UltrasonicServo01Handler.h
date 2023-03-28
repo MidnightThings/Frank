@@ -1,3 +1,4 @@
+#include <math.h>
 #include "HardwareSerial.h"
 #include <Servo.h>
 
@@ -13,7 +14,6 @@ class UltraSonicServo01Handler {
     }
 
     void initialize(int initialAngle = baseAngle) {
-      Serial.println("asdasdsadsad");
       myServo.attach(10);
       myServo.write(30);
       initialSetup(initialAngle);
@@ -27,20 +27,22 @@ class UltraSonicServo01Handler {
       setAngle(baseAngle);
     }
 
-    bool addDegrees(int deg) {
+    // Angle setting methods return expected turning time in milliseconds
+    // or -1 if demanded angle cannot be set
+    int addDegrees(int deg) {
       return setAngle(currentAngle + deg);
     }
 
-    bool setAngle(int angle) {
-      if (angle > 180 || angle < 0) return false;
-      if (angle == currentAngle) return true;
+    int setAngle(int angle) {
+      if (angle > 180 || angle < 0) return -1;
+      if (angle == currentAngle) return 0;
       myServo.write(angle);
+      int diff = currentAngle - angle;
       currentAngle = angle;
-      delay(15);
-      return true;
+      return trunc((abs(diff) / (double)60) * 100);
     }
 
-    bool setRelativeAngle(int deg) {
+    int setRelativeAngle(int deg) {
       return setAngle(baseAngle + deg);
     }
 };

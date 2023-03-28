@@ -7,7 +7,7 @@ class UltrasonicSensorHandler {
     
     const int ECHO = 8;
     const int TRIG = 9;
-    const int verificationDegreeSteps = 30;
+    const int verificationDegreeSteps = 25;
 
     void _initialize() {
       pinMode(TRIG, OUTPUT);
@@ -42,10 +42,14 @@ class UltrasonicSensorHandler {
     }
 
     bool obstacleFromRelativeDegrees(int dist, int degs) {
-      srv.setRelativeAngle(degs);
-      delay(50);
-      int res = readDistance();
-      if (res < dist) return true;
-      return false;
+      int expectedDelay = srv.setRelativeAngle(degs);
+      if (expectedDelay > -1) {
+        delay(expectedDelay);
+        int res = readDistance();
+        if (res == -1) return false;
+        if (res < dist) return true;
+        return false;
+      } else return false;
+      
     }
 };
