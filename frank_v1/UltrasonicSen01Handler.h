@@ -34,22 +34,20 @@ class UltrasonicSensorHandler {
       return calculateDistance(lowLevelTime);
     }
 
-    bool obstacleAhead(int dist, int degs = 0) {
-      if (!obstacleFromRelativeDegrees(dist, degs)) return false;
-      if (!obstacleFromRelativeDegrees(dist, (verificationDegreeSteps + degs))) return false;
-      if (!obstacleFromRelativeDegrees(dist, (-verificationDegreeSteps + degs))) return false;
-      return true;
+    int obstacleAhead(int dist, int degs = 0) {
+      if (obstacleFromRelativeDegrees(dist, 0) > dist) return dist;
+      if (obstacleFromRelativeDegrees(dist, (verificationDegreeSteps + degs)) > dist) return dist;
+      return obstacleFromRelativeDegrees(dist, (-verificationDegreeSteps + degs));
     }
 
-    bool obstacleFromRelativeDegrees(int dist, int degs) {
+    int obstacleFromRelativeDegrees(int dist, int degs) {
       int expectedDelay = srv.setRelativeAngle(degs);
       if (expectedDelay > -1) {
         delay(expectedDelay);
         int res = readDistance();
-        if (res == -1) return false;
-        if (res < dist) return true;
-        return false;
-      } else return false;
+        if (res == -1) return -1;
+        return res;
+      } else return -1;
       
     }
 };
