@@ -1,23 +1,14 @@
 #include "UltrasonicSen01Handler.h"
-#include "EngineHandler.h"
-
-enum EDrivingMode {
-  IDLE,
-  FORWARD,
-  BACKWARD,
-  TURNLEFT,
-  TURNRIGHT
-};
+#include "MovementHandler.h"
 
 UltrasonicSensorHandler sonicHandler;
-EDrivingMode drivingMode = IDLE;
-EngineHandler engineRight(5, 4);
-EngineHandler engineLeft(6, 7);
+MovementHandler engineMovement(5, 4, 6, 7);
 
 void setup() {
   Serial.begin(115200);
   sonicHandler.srv.myServo.attach(10);
   sonicHandler.srv.initialize();
+  engineMovement.setSensorHandler(sonicHandler);
 }
 
 void loop() {
@@ -25,24 +16,20 @@ void loop() {
     char val = Serial.read();
     if (val != -1) {
       switch(val) {
-        case 'U':
-          engineLeft.advance(255);
-          engineRight.advance(255);
+        case 'W':
+          engineMovement.advance(255);
+          break;
+
+        case 'S':
+          engineMovement.backOff(255);
+          break;
+
+        case 'A':
+          engineMovement.turnLeft(200);
           break;
 
         case 'D':
-          engineLeft.backOff(255);
-          engineRight.backOff(255);
-          break;
-
-        case 'L':
-          engineLeft.backOff(200);
-          engineRight.advance(200);
-          break;
-
-        case 'R':
-          engineLeft.advance(200);
-          engineRight.backOff(200);
+          engineMovement.turnRight(200);
           break;
 
         case 'z':
@@ -50,16 +37,10 @@ void loop() {
           break;
 
         case 'x':
-          engineLeft.stop();
-          engineRight.stop();
+          engineMovement.stop();
           break;
       }
     }
   }
-  if (engineLeft.getDrivingMode() == FORWARD && engineRight.getDrivingMode() == FORWARD) {
-    if (sonicHandler.obstacleAhead(50)) {
-      engineLeft.stop();
-      engineRight.stop();
-    }
-  }
+  engineMovement.checkObstacle();
 }
