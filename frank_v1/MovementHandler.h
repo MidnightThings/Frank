@@ -6,6 +6,9 @@ class MovementHandler
     Engine engineLeft;
     Engine engineRight;
     UltrasonicSensorHandler sensorHandler;
+    bool autonom = false;
+    
+  public:
     enum EDrivingMode {
       IDLE,
       FORWARD,
@@ -14,8 +17,6 @@ class MovementHandler
       TURNRIGHT
     };
     EDrivingMode drivingMode;
-
-  public:
     MovementHandler(int speedPinEngine1, int direcionPinEngine1, int speedPinEngine2, int direcionPinEngine2)
     {
       this->engineLeft.initialize(speedPinEngine2, direcionPinEngine2);
@@ -76,9 +77,22 @@ class MovementHandler
 
     void checkObstacle()
     {
-      if (this->drivingMode== FORWARD) {
-        if (this->sensorHandler.obstacleAhead(50)) {
-         this->stop();
+      if (this->sensorHandler.obstacleAhead(50)) {
+        this->stop();
+        if(this->autonom){
+          if(!this->sensorHandler.obstacleAhead(50, 45)){
+            this->turnLeft(200);
+            delay(1000);
+            this->checkObstacle();
+          }else if(!this->sensorHandler.obstacleAhead(50, -45)){
+            this->turnRight(200);
+            delay(1000);
+            this->checkObstacle();
+          }
+        }
+      }else{
+        if(this->autonom){
+          this->advance(255);
         }
       }
     }
@@ -86,5 +100,11 @@ class MovementHandler
     void setSensorHandler(UltrasonicSensorHandler sensorHandler)
     {
       this->sensorHandler = sensorHandler;
+    }
+
+    void autonomous(int speed)
+    {
+      this->autonom = true;
+      this->advance(255);
     }
 };

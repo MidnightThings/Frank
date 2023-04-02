@@ -34,10 +34,10 @@ class UltrasonicSensorHandler {
       return calculateDistance(lowLevelTime);
     }
 
-    bool obstacleAhead(int dist) {
-      if (!obstacleFromRelativeDegrees(dist, 0)) return false;
-      if (!obstacleFromRelativeDegrees(dist, verificationDegreeSteps)) return false;
-      if (!obstacleFromRelativeDegrees(dist, -verificationDegreeSteps)) return false;
+    bool obstacleAhead(int dist, int degs = 0) {
+      if (!obstacleFromRelativeDegrees(dist, degs)) return false;
+      if (!obstacleFromRelativeDegrees(dist, (verificationDegreeSteps + degs))) return false;
+      if (!obstacleFromRelativeDegrees(dist, (-verificationDegreeSteps + degs))) return false;
       return true;
     }
 
