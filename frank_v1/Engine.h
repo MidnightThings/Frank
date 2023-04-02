@@ -13,6 +13,10 @@ class Engine
       digitalWrite(this->speedPin, LOW);
     }
 
+    void setSpeed(int speed) {
+      analogWrite(this->speedPin, speed);
+    }
+
     void advance(int speed) {
       analogWrite(this->speedPin, speed);
       digitalWrite(this->directionPin, HIGH);

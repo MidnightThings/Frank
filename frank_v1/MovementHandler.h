@@ -1,3 +1,4 @@
+#include "WString.h"
 #include "Engine.h"
 
 class MovementHandler
@@ -13,7 +14,17 @@ class MovementHandler
       TURNLEFT,
       TURNRIGHT
     };
+    enum ECurveDirection {
+      NONE,
+      LEFT,
+      RIGHT
+    };
+    const int maxCurveLevel = 5;
+    const int curveLevelSpeedReduction = 45;
+    int currentSpeed;
+    int curveLevel = 0;
     EDrivingMode drivingMode;
+    ECurveDirection curveDirection = NONE;
 
   public:
     MovementHandler(int speedPinEngine1, int direcionPinEngine1, int speedPinEngine2, int direcionPinEngine2)
@@ -29,6 +40,7 @@ class MovementHandler
         this->stop();
         delay(50);
       }
+      currentSpeed = speed;
       this->engineLeft.advance(speed);
       this->engineRight.advance(speed);
       this->drivingMode = FORWARD;
@@ -40,6 +52,7 @@ class MovementHandler
         this->stop();
         delay(50);
       }
+      currentSpeed = speed;
       this->engineLeft.backOff(speed);
       this->engineRight.backOff(speed);
       this->drivingMode = BACKWARD;
@@ -67,6 +80,32 @@ class MovementHandler
       this->drivingMode = TURNRIGHT;
     }
 
+    void setCurve(int level, String direction) {
+      if (level < 0 || level > maxCurveLevel) return;
+      if (drivingMode != FORWARD && drivingMode != BACKWARD) return;
+      direction.toLowerCase();
+      // Check for changed curve direction, in that case set both engines to current speed (end turn)
+      if (curveDirection != NONE) {
+        if ((curveDirection == LEFT && direction != "left") || (curveDirection == RIGHT && direction != "right")) {
+          stopCurve();
+        }
+      }
+      int desiredSpeed = currentSpeed - (curveLevelSpeedReduction * level);
+      if (direction == "left") {
+        if (drivingMode == FORWARD) engineLeft.setSpeed(desiredSpeed);
+        else engineRight.setSpeed(desiredSpeed);
+      } else {
+        if (drivingMode == FORWARD) engineRight.setSpeed(desiredSpeed);
+        else engineLeft.setSpeed(desiredSpeed);
+      }
+      curveLevel = level;
+    }
+
+    void stopCurve() {
+      engineLeft.setSpeed(currentSpeed);
+      engineRight.setSpeed(currentSpeed);
+    }
+
     void stop()
     {
       this->engineLeft.stop();
@@ -76,10 +115,17 @@ class MovementHandler
 
     void checkObstacle()
     {
-      if (this->drivingMode== FORWARD) {
-        if (this->sensorHandler.obstacleAhead(50)) {
-         this->stop();
-        }
+      if (this->drivingMode == FORWARD) {
+        int dist = sensorHandler.obstacleAhead(100);
+        String dir = "left";
+        if (dist < 100) {
+          if (dist > 90) setCurve(1, dir);
+          else if (dist > 80) setCurve(2, dir);
+          else if (dist > 70) setCurve(3, dir);
+          else if (dist > 60) setCurve(4, dir);
+          else if (dist > 25) setCurve(5, dir);
+          else stop();
+        } else stopCurve();
       }
     }
 
