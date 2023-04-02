@@ -96,9 +96,11 @@ class MovementHandler
       if (direction == "left") {
         if (drivingMode == FORWARD) engineLeft.setSpeed(desiredSpeed);
         else engineRight.setSpeed(desiredSpeed);
+        curveDirection = LEFT;
       } else {
         if (drivingMode == FORWARD) engineRight.setSpeed(desiredSpeed);
         else engineLeft.setSpeed(desiredSpeed);
+        curveDirection = RIGHT;
       }
       curveLevel = level;
     }
@@ -106,6 +108,8 @@ class MovementHandler
     void stopCurve() {
       engineLeft.setSpeed(currentSpeed);
       engineRight.setSpeed(currentSpeed);
+      curveLevel = 0;
+      curveDirection = NONE;
     }
 
     void stop()
@@ -115,29 +119,48 @@ class MovementHandler
       this->drivingMode = IDLE;
     }
 
-    void checkObstacle()
+    void checkObstacle(bool rescueRun = false)
     {
       String dir;
       int dist = sensorHandler.obstacleAhead(100);
+      int distLeft;
+      int distRight;
       if (dist < 100) {
         if (this->autonom) {
-          dist = this->sensorHandler.obstacleAhead(50, 45);
-          if (dist > 100) {
+          distLeft = this->sensorHandler.obstacleAhead(50, 45);
+          if (distLeft > 100) {
             dir = "left";
-            this->checkObstacle();
+            dist = distLeft;
           } else {
-            dist = this->sensorHandler.obstacleAhead(50, -45);
-            if (dist > 100) {
+            distRight = this->sensorHandler.obstacleAhead(50, -45);
+            if (distRight > 100 || distRight > distLeft) {
               dir = "right";
-              this->checkObstacle();
+              dist = distRight;
+            } else {
+              dir = "left";
+              dist = distLeft;
             }
           }
-          if (dist > 90) setCurve(1, dir);
-          else if (dist > 80) setCurve(2, dir);
-          else if (dist > 70) setCurve(3, dir);
-          else if (dist > 60) setCurve(4, dir);
-          else if (dist > 25) setCurve(5, dir);
-          else stop();
+          Serial.println(dir);
+          Serial.println(dist);
+          if (rescueRun) {
+            advance(255);
+            setCurve(5, dir);
+          }
+          else if (dist > 70) setCurve(1, dir);
+          else if (dist > 65) setCurve(2, dir);
+          else if (dist > 60) setCurve(3, dir);
+          else if (dist > 55) setCurve(4, dir);
+          else if (dist > 50) setCurve(5, dir);
+          else {
+            stopCurve();
+            backOff(255);
+            delay(500);
+            stop();
+            checkObstacle(true);            
+            return;
+          }
+          delay(100);
         } else if (dist < 50) stop();
       } else {
         if (this->autonom) {
