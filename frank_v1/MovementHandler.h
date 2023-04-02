@@ -7,7 +7,10 @@ class MovementHandler
     Engine engineLeft;
     Engine engineRight;
     UltrasonicSensorHandler sensorHandler;
-    enum EDrivingMode {
+    bool autonom = false;
+
+  public:
+  enum EDrivingMode {
       IDLE,
       FORWARD,
       BACKWARD,
@@ -25,8 +28,7 @@ class MovementHandler
     int curveLevel = 0;
     EDrivingMode drivingMode;
     ECurveDirection curveDirection = NONE;
-
-  public:
+    
     MovementHandler(int speedPinEngine1, int direcionPinEngine1, int speedPinEngine2, int direcionPinEngine2)
     {
       this->engineLeft.initialize(speedPinEngine2, direcionPinEngine2);
@@ -115,22 +117,43 @@ class MovementHandler
 
     void checkObstacle()
     {
-      if (this->drivingMode == FORWARD) {
-        int dist = sensorHandler.obstacleAhead(100);
-        String dir = "left";
-        if (dist < 100) {
+      String dir;
+      int dist = sensorHandler.obstacleAhead(100);
+      if (dist < 100) {
+        if (this->autonom) {
+          dist = this->sensorHandler.obstacleAhead(50, 45);
+          if (dist > 100) {
+            dir = "left";
+            this->checkObstacle();
+          } else {
+            dist = this->sensorHandler.obstacleAhead(50, -45);
+            if (dist > 100) {
+              dir = "right";
+              this->checkObstacle();
+            }
+          }
           if (dist > 90) setCurve(1, dir);
           else if (dist > 80) setCurve(2, dir);
           else if (dist > 70) setCurve(3, dir);
           else if (dist > 60) setCurve(4, dir);
           else if (dist > 25) setCurve(5, dir);
           else stop();
-        } else stopCurve();
+        } else if (dist < 50) stop();
+      } else {
+        if (this->autonom) {
+          stopCurve();
+        }
       }
     }
 
     void setSensorHandler(UltrasonicSensorHandler sensorHandler)
     {
       this->sensorHandler = sensorHandler;
+    }
+
+    void autonomous(int speed)
+    {
+      this->autonom = true;
+      this->advance(255);
     }
 };

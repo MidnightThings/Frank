@@ -39,8 +39,14 @@ void loop() {
         case 'x':
           engineMovement.stop();
           break;
+
+        case 'p':
+          engineMovement.autonomous(255);
+          break;  
       }
     }
   }
-  engineMovement.checkObstacle();
+  if(engineMovement.drivingMode == engineMovement.FORWARD){
+    engineMovement.checkObstacle();
+  }
 }
