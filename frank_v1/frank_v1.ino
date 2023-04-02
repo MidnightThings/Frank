@@ -15,7 +15,6 @@ void loop() {
   if(Serial.available()) {
     char val = Serial.read();
     if (val != -1) {
-      Serial.println(val);
       switch(val) {
         case 'W':
           engineMovement.advance(255);
