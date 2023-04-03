@@ -127,12 +127,12 @@ class MovementHandler
       int distRight;
       if (dist < 100) {
         if (this->autonom) {
-          distLeft = this->sensorHandler.obstacleAhead(50, 45);
+          distLeft = this->sensorHandler.obstacleAhead(100, 45);
           if (distLeft > 100) {
             dir = "left";
             dist = distLeft;
           } else {
-            distRight = this->sensorHandler.obstacleAhead(50, -45);
+            distRight = this->sensorHandler.obstacleAhead(100, -45);
             if (distRight > 100 || distRight > distLeft) {
               dir = "right";
               dist = distRight;
