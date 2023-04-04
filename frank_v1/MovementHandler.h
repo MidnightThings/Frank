@@ -86,28 +86,29 @@ class MovementHandler
 
     void setCurve(int level, String direction) {
       if (level < 0 || level > maxCurveLevel) return;
-      if (drivingMode != FORWARD && drivingMode != BACKWARD) return;
+      if (this->drivingMode != FORWARD && this->drivingMode != BACKWARD) return;
       direction.toLowerCase();
       // Check for changed curve direction, in that case set both engines to current speed (end turn)
-      if (curveDirection != NONE) {
-        if ((curveDirection == LEFT && direction != "left") || (curveDirection == RIGHT && direction != "right")) {
+      if (this->curveDirection != NONE) {
+        if ((this->curveDirection == LEFT && direction != "left") || (this->curveDirection == RIGHT && direction != "right")) {
           stopCurve();
         }
       }
       int desiredSpeed = currentSpeed - (curveLevelSpeedReduction * level);
       if (direction == "left") {
-        if (drivingMode == FORWARD) engineLeft.setSpeed(desiredSpeed);
+        if (this->drivingMode == FORWARD) engineLeft.setSpeed(desiredSpeed);
         else engineRight.setSpeed(desiredSpeed);
-        curveDirection = LEFT;
+        this->curveDirection = LEFT;
       } else {
-        if (drivingMode == FORWARD) engineRight.setSpeed(desiredSpeed);
+        if (this->drivingMode == FORWARD) engineRight.setSpeed(desiredSpeed);
         else engineLeft.setSpeed(desiredSpeed);
-        curveDirection = RIGHT;
+        this->curveDirection = RIGHT;
       }
-      curveLevel = level;
+      this->curveLevel = level;
     }
 
     void stopCurve() {
+      if (curveLevel == 0 || curveDirection == NONE) return;
       engineLeft.setSpeed(currentSpeed);
       engineRight.setSpeed(currentSpeed);
       curveLevel = 0;
@@ -119,57 +120,68 @@ class MovementHandler
       this->engineLeft.stop();
       this->engineRight.stop();
       this->drivingMode = IDLE;
+      this->currentSpeed = 0;
       if (fullSystemHalt) this->autonom = false;
+    }
+
+    void slowStop(int breakSteps = 4) {
+      if (this->drivingMode != FORWARD && this->drivingMode != BACKWARD) return;
+      int breakStep = currentSpeed / breakSteps;
+      for (int ii = 0; ii < (breakSteps - 1); ii++) {
+        this->advance(this->currentSpeed - breakStep);
+        delay(50);
+      }
+      this->stop();
     }
 
     void checkObstacle()
     {
       String dir;
-      int dist = sensorHandler.obstacleAhead(150);
+      int dist = sensorHandler.obstacleAhead(100);
       int distLeft;
       int distRight;
       if(dist <= 40 && this->autonom){
-        Serial.println("kleiner 40?");
-        Serial.println(dist);
         stopCurve();
+        slowStop(4);
         backOff(255);
         delay(500);
-        stop();
+        slowStop(4);
         this->rescueRun = true;
-        checkObstacle();
+        // checkObstacle();
         return;
       }
-      if (dist < 150) {
+      if (dist < 100) {
         if (this->autonom) {
-          distLeft = this->sensorHandler.obstacleAhead(150, 50);
-          if (distLeft > 150) {
+          distLeft = this->sensorHandler.obstacleAhead(100, 45);
+          if (distLeft >= 100) {
             dir = "left";
-            dist = distLeft;
           } else {
-            distRight = this->sensorHandler.obstacleAhead(150, -50);
-            if (distRight > 150 || distRight > (distLeft + 5)) {
+            distRight = this->sensorHandler.obstacleAhead(100, -45);
+            if (distRight >= 100 || distRight > (distLeft)) {
               dir = "right";
-              dist = distRight;
             } else {
               dir = "left";
-              dist = distLeft;
             }
           }      
           if (this->rescueRun) {
             advance(255);
-            setCurve(5, dir);
+            // setCurve(5, dir);
             this->rescueRun = false;
           }
-          else if (dist > 120) setCurve(1, dir);
-          else if (dist > 105) setCurve(2, dir);
-          else if (dist > 90) setCurve(3, dir);
-          else if (dist > 80) setCurve(4, dir);
+          if (dist > 90) setCurve(1, dir);
+          else if (dist > 80) setCurve(2, dir);
+          else if (dist > 70) setCurve(3, dir);
+          else if (dist > 60) setCurve(4, dir);
           else setCurve(5, dir);
-          delay(100);
+          // delay(100);
         } else if (dist < 50) stop();
       } else {
         if (this->autonom) {
           stopCurve();
+          if (this->rescueRun) {
+            advance(255);
+            this->rescueRun = false;
+          }
         }
       }
     }

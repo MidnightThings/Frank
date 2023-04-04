@@ -36,18 +36,17 @@ class UltrasonicSensorHandler {
     }
 
     /* Checks for an obstacle directly ahead. Will perform 3 readings from different angles at most.
-    * Returns value of 'dist' at the first reading whose distance is above 'dist', or the final reading
-    .
-    * 'dist' sets a timeout for each reading, so it will be the highest possbile distance to be returned (in cm). 
+    * Returns value of 'dist' at the first reading whose distance is above 'dist', or the final reading.
+    * 'dist' min distance in cm for which the method shall return without further ado. 
     * 'degs' sets an offset for sensor position.
     */ 
     int obstacleAhead(int dist = 300, int degs = 0) {
       int res = obstacleFromRelativeDegrees(dist, degs);
-      if (res == -1 || res >= dist) return dist;
+      if (res == -1 || res >= dist) return res;
       res = obstacleFromRelativeDegrees(dist, (verificationDegreeSteps + degs));
-      if (res == -1 || res >= dist) return dist;
+      if (res == -1 || res >= dist) return res;      
       res = obstacleFromRelativeDegrees(dist, (-verificationDegreeSteps + degs));
-      if (res == -1 || res >= dist) return dist;
+      if (res == -1 || res >= dist) return res;
       return res;
     }
 
