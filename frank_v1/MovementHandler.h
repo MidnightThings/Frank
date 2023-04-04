@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #include "WString.h"
 #include "Engine.h"
 
@@ -8,6 +9,7 @@ class MovementHandler
     Engine engineRight;
     UltrasonicSensorHandler sensorHandler;
     bool autonom = false;
+    bool rescueRun = false;
 
   public:
   enum EDrivingMode {
@@ -96,9 +98,11 @@ class MovementHandler
       if (direction == "left") {
         if (drivingMode == FORWARD) engineLeft.setSpeed(desiredSpeed);
         else engineRight.setSpeed(desiredSpeed);
+        curveDirection = LEFT;
       } else {
         if (drivingMode == FORWARD) engineRight.setSpeed(desiredSpeed);
         else engineLeft.setSpeed(desiredSpeed);
+        curveDirection = RIGHT;
       }
       curveLevel = level;
     }
@@ -106,38 +110,62 @@ class MovementHandler
     void stopCurve() {
       engineLeft.setSpeed(currentSpeed);
       engineRight.setSpeed(currentSpeed);
+      curveLevel = 0;
+      curveDirection = NONE;
     }
 
-    void stop()
+    void stop(bool fullSystemHalt = false)
     {
       this->engineLeft.stop();
       this->engineRight.stop();
       this->drivingMode = IDLE;
+      if (fullSystemHalt) this->autonom = false;
     }
 
     void checkObstacle()
     {
       String dir;
-      int dist = sensorHandler.obstacleAhead(100);
-      if (dist < 100) {
+      int dist = sensorHandler.obstacleAhead(150);
+      int distLeft;
+      int distRight;
+      if(dist <= 40 && this->autonom){
+        Serial.println("kleiner 40?");
+        Serial.println(dist);
+        stopCurve();
+        backOff(255);
+        delay(500);
+        stop();
+        this->rescueRun = true;
+        checkObstacle();
+        return;
+      }
+      if (dist < 150) {
         if (this->autonom) {
-          dist = this->sensorHandler.obstacleAhead(50, 45);
-          if (dist > 100) {
+          distLeft = this->sensorHandler.obstacleAhead(150, 50);
+          if (distLeft > 150) {
             dir = "left";
-            this->checkObstacle();
+            dist = distLeft;
           } else {
-            dist = this->sensorHandler.obstacleAhead(50, -45);
-            if (dist > 100) {
+            distRight = this->sensorHandler.obstacleAhead(150, -50);
+            if (distRight > 150 || distRight > (distLeft + 5)) {
               dir = "right";
-              this->checkObstacle();
+              dist = distRight;
+            } else {
+              dir = "left";
+              dist = distLeft;
             }
+          }      
+          if (this->rescueRun) {
+            advance(255);
+            setCurve(5, dir);
+            this->rescueRun = false;
           }
-          if (dist > 90) setCurve(1, dir);
-          else if (dist > 80) setCurve(2, dir);
-          else if (dist > 70) setCurve(3, dir);
-          else if (dist > 60) setCurve(4, dir);
-          else if (dist > 25) setCurve(5, dir);
-          else stop();
+          else if (dist > 120) setCurve(1, dir);
+          else if (dist > 105) setCurve(2, dir);
+          else if (dist > 90) setCurve(3, dir);
+          else if (dist > 80) setCurve(4, dir);
+          else setCurve(5, dir);
+          delay(100);
         } else if (dist < 50) stop();
       } else {
         if (this->autonom) {
@@ -155,5 +183,12 @@ class MovementHandler
     {
       this->autonom = true;
       this->advance(255);
+    }
+
+    void performRoutine()
+    {
+      if(this->drivingMode == FORWARD || this->autonom){
+        this->checkObstacle();
+      }
     }
 };

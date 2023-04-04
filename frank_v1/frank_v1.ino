@@ -37,7 +37,7 @@ void loop() {
           break;
 
         case 'x':
-          engineMovement.stop();
+          engineMovement.stop(true);
           break;
 
         case 'p':
@@ -46,7 +46,5 @@ void loop() {
       }
     }
   }
-  if(engineMovement.drivingMode == engineMovement.FORWARD){
-    engineMovement.checkObstacle();
-  }
+  engineMovement.performRoutine();
 }

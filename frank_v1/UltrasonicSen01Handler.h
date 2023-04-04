@@ -26,26 +26,36 @@ class UltrasonicSensorHandler {
       _initialize();
     }
 
-    int readDistance() {
+    int readDistance(int dist) {
       digitalWrite(TRIG, LOW);
       digitalWrite(TRIG, HIGH);
+      unsigned long timeout = dist * 51;
       unsigned long lowLevelTime = pulseIn(ECHO, LOW);
-      if (lowLevelTime > 50000) return -1;
+      if (lowLevelTime > 50000 || lowLevelTime == 0) return -1;
       return calculateDistance(lowLevelTime);
     }
 
-    int obstacleAhead(int dist, int degs = 0) {
-      if (obstacleFromRelativeDegrees(dist, 0) > dist) return dist;
-      if (obstacleFromRelativeDegrees(dist, (verificationDegreeSteps + degs)) > dist) return dist;
-      return obstacleFromRelativeDegrees(dist, (-verificationDegreeSteps + degs));
+    /* Checks for an obstacle directly ahead. Will perform 3 readings from different angles at most.
+    * Returns value of 'dist' at the first reading whose distance is above 'dist', or the final reading
+    .
+    * 'dist' sets a timeout for each reading, so it will be the highest possbile distance to be returned (in cm). 
+    * 'degs' sets an offset for sensor position.
+    */ 
+    int obstacleAhead(int dist = 300, int degs = 0) {
+      int res = obstacleFromRelativeDegrees(dist, degs);
+      if (res == -1 || res >= dist) return dist;
+      res = obstacleFromRelativeDegrees(dist, (verificationDegreeSteps + degs));
+      if (res == -1 || res >= dist) return dist;
+      res = obstacleFromRelativeDegrees(dist, (-verificationDegreeSteps + degs));
+      if (res == -1 || res >= dist) return dist;
+      return res;
     }
 
     int obstacleFromRelativeDegrees(int dist, int degs) {
       int expectedDelay = srv.setRelativeAngle(degs);
       if (expectedDelay > -1) {
         delay(expectedDelay);
-        int res = readDistance();
-        if (res == -1) return -1;
+        int res = readDistance(dist);
         return res;
       } else return -1;
       
