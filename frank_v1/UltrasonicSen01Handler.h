@@ -30,7 +30,7 @@ class UltrasonicSensorHandler {
       digitalWrite(TRIG, LOW);
       digitalWrite(TRIG, HIGH);
       unsigned long timeout = dist * 51;
-      unsigned long lowLevelTime = pulseIn(ECHO, LOW, timeout);
+      unsigned long lowLevelTime = pulseIn(ECHO, LOW);
       if (lowLevelTime > 50000 || lowLevelTime == 0) return -1;
       return calculateDistance(lowLevelTime);
     }
@@ -42,7 +42,7 @@ class UltrasonicSensorHandler {
     * 'degs' sets an offset for sensor position.
     */ 
     int obstacleAhead(int dist = 300, int degs = 0) {
-      int res = obstacleFromRelativeDegrees(dist, degs) > dist;
+      int res = obstacleFromRelativeDegrees(dist, degs);
       if (res == -1 || res >= dist) return dist;
       res = obstacleFromRelativeDegrees(dist, (verificationDegreeSteps + degs));
       if (res == -1 || res >= dist) return dist;

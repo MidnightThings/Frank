@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #include "WString.h"
 #include "Engine.h"
 
@@ -8,6 +9,7 @@ class MovementHandler
     Engine engineRight;
     UltrasonicSensorHandler sensorHandler;
     bool autonom = false;
+    bool rescueRun = false;
 
   public:
   enum EDrivingMode {
@@ -112,54 +114,57 @@ class MovementHandler
       curveDirection = NONE;
     }
 
-    void stop()
+    void stop(bool fullSystemHalt = false)
     {
       this->engineLeft.stop();
       this->engineRight.stop();
       this->drivingMode = IDLE;
+      if (fullSystemHalt) this->autonom = false;
     }
 
-    void checkObstacle(bool rescueRun = false)
+    void checkObstacle()
     {
       String dir;
-      int dist = sensorHandler.obstacleAhead(100);
+      int dist = sensorHandler.obstacleAhead(150);
       int distLeft;
       int distRight;
-      if (dist < 100) {
+      if(dist <= 40 && this->autonom){
+        Serial.println("kleiner 40?");
+        Serial.println(dist);
+        stopCurve();
+        backOff(255);
+        delay(500);
+        stop();
+        this->rescueRun = true;
+        checkObstacle();
+        return;
+      }
+      if (dist < 150) {
         if (this->autonom) {
-          distLeft = this->sensorHandler.obstacleAhead(100, 45);
-          if (distLeft > 100) {
+          distLeft = this->sensorHandler.obstacleAhead(150, 50);
+          if (distLeft > 150) {
             dir = "left";
             dist = distLeft;
           } else {
-            distRight = this->sensorHandler.obstacleAhead(100, -45);
-            if (distRight > 100 || distRight > distLeft) {
+            distRight = this->sensorHandler.obstacleAhead(150, -50);
+            if (distRight > 150 || distRight > (distLeft + 5)) {
               dir = "right";
               dist = distRight;
             } else {
               dir = "left";
               dist = distLeft;
             }
-          }
-          Serial.println(dir);
-          Serial.println(dist);
-          if (rescueRun) {
+          }      
+          if (this->rescueRun) {
             advance(255);
             setCurve(5, dir);
+            this->rescueRun = false;
           }
-          else if (dist > 70) setCurve(1, dir);
-          else if (dist > 65) setCurve(2, dir);
-          else if (dist > 60) setCurve(3, dir);
-          else if (dist > 55) setCurve(4, dir);
-          else if (dist > 50) setCurve(5, dir);
-          else {
-            stopCurve();
-            backOff(255);
-            delay(500);
-            stop();
-            checkObstacle(true);            
-            return;
-          }
+          else if (dist > 120) setCurve(1, dir);
+          else if (dist > 105) setCurve(2, dir);
+          else if (dist > 90) setCurve(3, dir);
+          else if (dist > 80) setCurve(4, dir);
+          else setCurve(5, dir);
           delay(100);
         } else if (dist < 50) stop();
       } else {
@@ -178,5 +183,12 @@ class MovementHandler
     {
       this->autonom = true;
       this->advance(255);
+    }
+
+    void performRoutine()
+    {
+      if(this->drivingMode == FORWARD || this->autonom){
+        this->checkObstacle();
+      }
     }
 };
