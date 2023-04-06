@@ -1,6 +1,7 @@
 #include "HardwareSerial.h"
 #include "WString.h"
 #include "Engine.h"
+#include <time.h>
 
 class MovementHandler
 {
@@ -12,7 +13,7 @@ class MovementHandler
     bool rescueRun = false;
 
   public:
-  enum EDrivingMode {
+    enum EDrivingMode {
       IDLE,
       FORWARD,
       BACKWARD,
@@ -38,28 +39,45 @@ class MovementHandler
       this->drivingMode = IDLE;
     }
 
+    /* direction must be FORWARD or BACKWARD.
+    */
+    void bringToSpeed(int speed, EDrivingMode direction) 
+    {
+      if (direction != FORWARD && direction != BACKWARD) return;
+      bool forward = direction == FORWARD;
+      int speedDifference = speed - this->currentSpeed;
+      int accelerationSteps = speedDifference / 60;
+      int accelerationtep = speedDifference / accelerationSteps;
+      for (int ii = 0; ii < (accelerationSteps - 1); ii++) {
+        int newSpeed = this->currentSpeed + accelerationtep;
+        this->engineLeft.setSpeed(newSpeed, forward);
+        this->engineRight.setSpeed(newSpeed, forward);
+        this->currentSpeed = newSpeed;
+        delay(50);
+      }
+      this->engineLeft.setSpeed(speed, forward);
+      this->engineRight.setSpeed(speed, forward);
+      this->currentSpeed = speed;
+      this->drivingMode = direction;
+    }
+
     void advance(int speed)
     {  
       if (this->drivingMode != IDLE && this->drivingMode != FORWARD) {
         this->stop();
-        delay(50);
+        delay(10);
       }
-      currentSpeed = speed;
-      this->engineLeft.advance(speed);
-      this->engineRight.advance(speed);
-      this->drivingMode = FORWARD;
+      this->bringToSpeed(speed, FORWARD);
     }
 
     void backOff(int speed)
     {
       if (this->drivingMode != IDLE && this->drivingMode != BACKWARD) {
         this->stop();
-        delay(50);
+        delay(10);
       }
-      currentSpeed = speed;
-      this->engineLeft.backOff(speed);
-      this->engineRight.backOff(speed);
-      this->drivingMode = BACKWARD;
+
+      this->bringToSpeed(speed, BACKWARD);
     }
 
     void turnLeft(int speed)
@@ -84,6 +102,32 @@ class MovementHandler
       this->drivingMode = TURNRIGHT;
     }
 
+    /* Get it?
+    */
+    void beASunflower(bool left) 
+    {
+      if (this->drivingMode != IDLE) this->stop();
+      int widestSpace = 0;
+      if (left) this->turnLeft(200);
+      else this->turnRight(200);
+      auto start = time_t();
+      while (true) {
+        int dist = this->sensorHandler.obstacleAhead(100, left ? 10 : -10);
+        if (dist >= 100) {
+          this->stop();
+          return;
+        }
+        auto elapsedSeconds = start - time_t();
+        if (elapsedSeconds > 8) {
+          if (dist >= (widestSpace - elapsedSeconds)) {
+            this->stop();
+            return;
+          }
+        }
+        if (dist > widestSpace) widestSpace = dist;
+      }
+    }
+
     void setCurve(int level, String direction) {
       if (level < 0 || level > maxCurveLevel) return;
       if (this->drivingMode != FORWARD && this->drivingMode != BACKWARD) return;
@@ -96,42 +140,35 @@ class MovementHandler
       }
       int desiredSpeed = currentSpeed - (curveLevelSpeedReduction * level);
       if (direction == "left") {
-        if (this->drivingMode == FORWARD) engineLeft.setSpeed(desiredSpeed);
-        else engineRight.setSpeed(desiredSpeed);
+        if (this->drivingMode == FORWARD) engineLeft.setSpeed(desiredSpeed, true);
+        else engineRight.setSpeed(desiredSpeed, false);
         this->curveDirection = LEFT;
       } else {
-        if (this->drivingMode == FORWARD) engineRight.setSpeed(desiredSpeed);
-        else engineLeft.setSpeed(desiredSpeed);
+        if (this->drivingMode == FORWARD) engineRight.setSpeed(desiredSpeed, true);
+        else engineLeft.setSpeed(desiredSpeed, false);
         this->curveDirection = RIGHT;
       }
       this->curveLevel = level;
     }
 
     void stopCurve() {
-      if (curveLevel == 0 || curveDirection == NONE) return;
-      engineLeft.setSpeed(currentSpeed);
-      engineRight.setSpeed(currentSpeed);
+      if (curveLevel == 0 && curveDirection == NONE) return;
+      if (this->drivingMode == FORWARD) this->advance(currentSpeed);
+      else if (this->drivingMode == BACKWARD) this->backOff(currentSpeed);
       curveLevel = 0;
       curveDirection = NONE;
     }
 
     void stop(bool fullSystemHalt = false)
     {
+      if (this->drivingMode == FORWARD || this->drivingMode == BACKWARD) this->bringToSpeed(0, this->drivingMode);
       this->engineLeft.stop();
       this->engineRight.stop();
       this->drivingMode = IDLE;
       this->currentSpeed = 0;
+      // Just to be safe call stopCurve(). It won't do nuffin but setting stuff to zero.
+      this->stopCurve();
       if (fullSystemHalt) this->autonom = false;
-    }
-
-    void slowStop(int breakSteps = 4) {
-      if (this->drivingMode != FORWARD && this->drivingMode != BACKWARD) return;
-      int breakStep = currentSpeed / breakSteps;
-      for (int ii = 0; ii < (breakSteps - 1); ii++) {
-        this->advance(this->currentSpeed - breakStep);
-        delay(50);
-      }
-      this->stop();
     }
 
     void checkObstacle()
@@ -141,13 +178,10 @@ class MovementHandler
       int distLeft;
       int distRight;
       if(dist <= 40 && this->autonom){
-        stopCurve();
-        slowStop(4);
-        backOff(255);
-        delay(500);
-        slowStop(4);
+        bool left = this->curveDirection == LEFT;
+        this->stop();
+        beASunflower(left);
         this->rescueRun = true;
-        // checkObstacle();
         return;
       }
       if (dist < 100) {
@@ -157,7 +191,7 @@ class MovementHandler
             dir = "left";
           } else {
             distRight = this->sensorHandler.obstacleAhead(100, -45);
-            if (distRight >= 100 || distRight > (distLeft)) {
+            if (distRight >= 100 || distRight > distLeft) {
               dir = "right";
             } else {
               dir = "left";
@@ -165,7 +199,6 @@ class MovementHandler
           }      
           if (this->rescueRun) {
             advance(255);
-            // setCurve(5, dir);
             this->rescueRun = false;
           }
           if (dist > 90) setCurve(1, dir);
@@ -173,7 +206,6 @@ class MovementHandler
           else if (dist > 70) setCurve(3, dir);
           else if (dist > 60) setCurve(4, dir);
           else setCurve(5, dir);
-          // delay(100);
         } else if (dist < 50) stop();
       } else {
         if (this->autonom) {

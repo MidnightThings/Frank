@@ -7,7 +7,7 @@ class UltrasonicSensorHandler {
     
     const static int ECHO = 8;
     const static int TRIG = 9;
-    const static int verificationDegreeSteps = 25;
+    const static int verificationDegreeSteps = 20;
 
     void _initialize() {
       pinMode(TRIG, OUTPUT);
