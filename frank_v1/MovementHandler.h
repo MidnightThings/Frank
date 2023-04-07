@@ -1,4 +1,5 @@
 #include "HardwareSerial.h"
+#include "Arduino.h"
 #include "WString.h"
 #include "Engine.h"
 #include <time.h>
@@ -110,16 +111,17 @@ class MovementHandler
       int widestSpace = 0;
       if (left) this->turnLeft(200);
       else this->turnRight(200);
-      auto start = time_t();
+      unsigned long start = millis();
       while (true) {
         int dist = this->sensorHandler.obstacleAhead(100, left ? 10 : -10);
         if (dist >= 100) {
           this->stop();
           return;
         }
-        auto elapsedSeconds = start - time_t();
-        if (elapsedSeconds > 8) {
-          if (dist >= (widestSpace - elapsedSeconds)) {
+        unsigned long end = millis();
+        int elapsedMillis = end - start;
+        if (elapsedMillis > 5000) {
+          if (dist >= (widestSpace - (elapsedMillis / 1000))) {
             this->stop();
             return;
           }
